@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model client {
+  id             Int       @id @unique(map: "id") @default(autoincrement())
+  name           String    @db.VarChar(255)
+  address        String    @db.VarChar(255)
+  phone          String    @db.VarChar(255)
+  email          String    @db.VarChar(255)
+  paymentOptions String    @db.VarChar(255)
+  createdAt      DateTime  @default(now()) @db.Timestamp(0)
+  invoice        invoice[]
+}
+
+model invoice {
+  id            Int             @id @unique(map: "id") @default(autoincrement())
+  clientId      Int
+  productId     Int
+  invoiceCode   String          @db.VarChar(255)
+  invoiceDate   DateTime        @db.DateTime(0)
+  invoiceStatus invoiceStatus
+  totalAmount   Int
+  createdAt     DateTime        @default(now()) @db.Timestamp(0)
+  client        client          @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Invoice_fk1")
+  product       product         @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Invoice_fk2")
+  invoicedetail invoicedetail[]
+
+  @@index([clientId], map: "Invoice_fk1")
+  @@index([productId], map: "Invoice_fk2")
+}
+
+model invoicedetail {
+  id         Int      @id @unique(map: "id") @default(autoincrement())
+  productId  Int
+  invoiceId  Int
+  qty        Int
+  priceUnit  Int
+  priceTotal Int
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+  product    product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "InvoiceDetail_fk1")
+  invoice    invoice  @relation(fields: [invoiceId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "InvoiceDetail_fk2")
+
+  @@index([productId], map: "InvoiceDetail_fk1")
+  @@index([invoiceId], map: "InvoiceDetail_fk2")
+}
+
+model product {
+  id            Int             @id @unique(map: "id") @default(autoincrement())
+  userId        Int
+  productCode   String          @unique(map: "productCode") @db.VarChar(255)
+  name          String          @db.VarChar(255)
+  description   String          @db.Text
+  price         Int
+  isDeleted     Boolean         @default(false)
+  createdAt     DateTime        @default(now()) @db.Timestamp(0)
+  invoice       invoice[]
+  invoicedetail invoicedetail[]
+  user          user            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Product_fk1")
+
+  @@index([userId], map: "Product_fk1")
+}
+
+model user {
+  id               Int           @id @unique(map: "id") @default(autoincrement())
+  identificationId String        @unique(map: "identificationId")
+  username         String        @unique(map: "username") @db.VarChar(255)
+  email            String        @unique(map: "email") @db.VarChar(255)
+  password         String        @db.VarChar(255)
+  loginAttempt     Int           @default(0)
+  isBlocked        Boolean       @default(false)
+  isVerified       Boolean       @default(false) 
+  lastLoginAttempt DateTime      @default(now()) @db.Timestamp(0)    
+  createdAt        DateTime      @default(now()) @db.Timestamp(0)
+  product          product[]
+  userprofile      userprofile[]
+}
+
+model userprofile {
+  id             Int      @id @unique(map: "id") @default(autoincrement())
+  userId         Int
+  firstName      String?   @db.VarChar(255)
+  lastName       String?   @db.VarChar(255)
+  companyName    String?   @db.VarChar(255)
+  profilePicture String?   @db.VarChar(255)
+  address        String?   @db.VarChar(255)
+  phone          String?   @db.VarChar(255)
+  isCreated      Boolean   @default(false) 
+  createdAt      DateTime @default(now()) @db.Timestamp(0)
+  user           user     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "UserProfile_fk1")
+
+  @@index([userId], map: "UserProfile_fk1")
+}
+
+enum invoiceStatus{
+  PAID
+  UNPAID
+  OVERDUE
+}
